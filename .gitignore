@@ -1,0 +1,7 @@
+backend/.env
+frontend/.env
+frontend/node_modules/
+frontend/dist/
+backend/uploads/
+.dev/
+*.exe
