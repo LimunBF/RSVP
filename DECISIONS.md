@@ -36,12 +36,39 @@ Meskipun Redis adalah standar industri untuk *rate limiting*, menambahkannya ke 
 **Rasionalisasi:**
 Jika `session_id` wajib (`NOT NULL`), sistem akan *error* ketika tamu memilih "Tidak Hadir" atau "Mungkin" karena mereka tidak memilih sesi. Dengan *nullable*, logika ini terakomodasi di level database. Pembatasan satu tamu satu sesi (radio button, bukan checkbox) menghindarkan kebutuhan tabel relasi *many-to-many* (junction table), sehingga skema basis data tetap datar (satu baris per tamu) dan rekap dasbor lebih mudah dihitung dengan query `GROUP BY`.
 
-## 5. Implementasi Tema Modern Heritage & Lokalisasi
+## 5. Implementasi Tema Wayang Theatre & Bahasa
 
-**Konteks:** Desain menggunakan elemen Batik Truntum dan mendukung bahasa Indonesia serta Jawa Halus (Krama Inggil) tanpa mengorbankan UX.
+**Konteks:** Desain memakai arah **Wayang Theatre** (kelir, gunungan, artefak wayang asli) dengan teks berbahasa Indonesia. Batik Sidomukti hanya muncul sebagai ornamen kecil, bukan wallpaper.
 **Keputusan:**
 
 * Motif batik diimplementasikan eksklusif sebagai **SVG Asset murni (Corner Stamp/Divider)** dengan *coverage* maksimal 30% area, bukan sebagai gambar latar penuh.
-* Teks sapaan dwibahasa diatur melalui **Local State React**, bukan dari API *backend*.
+* Seluruh teks undangan berbahasa Indonesia. Toggle ID/JV **dihapus** karena hanya menerjemahkan satu kalimat sementara sisanya tetap Indonesia — toggle parsial lebih menyesatkan daripada satu bahasa yang konsisten.
+* Lokalisasi penuh (dictionary per bahasa) adalah pekerjaan tersendiri; tambahkan kembali bila seluruh alur publik sudah punya terjemahan Jawa.
 **Rasionalisasi:**
-Menempatkan teks di atas gambar tekstur batik berisiko gagal memenuhi standar rasio kontras aksesibilitas. Mengisolasi motif ke sudut layar memastikan *container* form tetap memiliki latar solid (Cream/Putih). Penanganan lokalisasi di sisi *client* (React state) menghilangkan kebutuhan *schema* tambahan di *database* atau param bahasa di *endpoint*, menjaga *backend* tetap ramping dan spesifik pada transaksi RSVP.
+Menempatkan teks di atas gambar tekstur batik berisiko gagal memenuhi standar rasio kontras aksesibilitas. Mengisolasi motif ke sudut layar memastikan *container* form tetap memiliki latar solid (Cream/Putih). Satu bahasa yang konsisten menghilangkan kebutuhan *schema* tambahan di *database* atau param bahasa di *endpoint*, menjaga *backend* tetap ramping dan spesifik pada transaksi RSVP.
+
+## 6. Arah Visual: Wayang Theatre, Bukan Truntum
+
+**Konteks:** Arah awal dokumen adalah *Modern Heritage* dengan Batik Truntum. Implementasi bergerak ke panggung wayang kulit: kelir, blencong, gunungan, dan foto artefak wayang asli dari Collectie Wereldmuseum serta foto pagelaran Kassian Cephas.
+**Keputusan:** Dokumentasi diselaraskan ke **Wayang Theatre**; implementasi dibatasi agar pasangan tetap menjadi pusat.
+
+* Adegan kelir penuh (kelir + blencong + grain + panggung + dua figur) hanya di opening dan hero.
+* Bagian acara, galeri, dan footer memakai *silhouette frame* tipis (`.stage-accent`), bukan panggung penuh berulang.
+* Aset disimpan lokal di `frontend/public/assets/wayang/`, tidak di-*hotlink*; sumber dan lisensi dicatat di `ASSETS-SOURCED.md` dan footer.
+* Batik Sidomukti hanya ornamen kecil, bukan wallpaper.
+
+**Rasionalisasi:**
+Mengulang panggung penuh di lima bagian menenggelamkan pasangan, menambah biaya paint/composite, dan membuat undangan terasa seperti pameran budaya. Satu adegan kuat di pembuka, lalu aksen kecil, memberi identitas tanpa menggeser fokus.
+
+## 7. Loop Konfirmasi & Absensi
+
+**Konteks:** Organizer mengisi *deadline* RSVP, tetapi form publik tidak menampilkannya dan backend menerima submission setelahnya. RSVP `yes` juga buntu bila acara belum punya sesi, dan endpoint absensi publik tanpa token dapat dienumerasi.
+**Keputusan:**
+
+* *Deadline* ditampilkan di atas form; pelanggaran ditolak server dengan 409 dan form diganti status "Konfirmasi telah ditutup".
+* Wedding baru otomatis mendapat satu sesi default sehingga RSVP `hadir` selalu punya pilihan sesi.
+* QR absensi membawa token *purpose-scoped* 14 hari; endpoint pencarian dan check-in menolak 403 tanpa token yang sah.
+* Menghapus sesi yang masih dipakai RSVP ditolak 409; waktu sesi divalidasi berurutan dan tidak bertumpuk.
+
+**Rasionalisasi:**
+Kontrak yang dijanjikan di UI organizer harus sama dengan yang ditegakkan backend. Token absensi memisahkan "tahu slug" dari "boleh mengabsen", sehingga daftar tamu tidak bocor dan absensi hari acara tetap dapat dipercaya.

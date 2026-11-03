@@ -5,3 +5,4 @@ frontend/dist/
 backend/uploads/
 .dev/
 *.exe
+*.tsbuildinfo

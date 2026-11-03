@@ -118,6 +118,18 @@ func validSearchQuery(q string) error {
 	}
 	return nil
 }
+// Sesi wajib berurutan dan tidak boleh bertumpuk, supaya rekap per sesi tetap masuk akal.
+func validSessionWindow(start, end time.Time, existing []WeddingSession) error {
+	if !end.After(start) {
+		return errors.New("waktu selesai harus setelah waktu mulai")
+	}
+	for _, s := range existing {
+		if start.Before(s.EndTime) && s.StartTime.Before(end) {
+			return errors.New("waktu bertabrakan dengan sesi " + s.Label)
+		}
+	}
+	return nil
+}
 func validateImage(mime string, size int64) error {
 	if size <= 0 || size > maxUploadBytes {
 		return errors.New("ukuran foto maksimal 8 MB")
@@ -146,6 +158,22 @@ func parseTime(s string) (time.Time, error) {
 }
 func (a *App) token(id uint) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": strconv.Itoa(int(id)), "exp": time.Now().Add(24 * time.Hour).Unix()}).SignedString(a.secret)
+}
+func (a *App) checkInToken(weddingID uint) (string, error) {
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"wid": strconv.Itoa(int(weddingID)), "purpose": "check-in", "exp": time.Now().Add(14 * 24 * time.Hour).Unix(),
+	}).SignedString(a.secret)
+}
+func (a *App) validateCheckInToken(raw string, weddingID uint) bool {
+	t, err := jwt.Parse(raw, func(t *jwt.Token) (any, error) {
+		if t.Method.Alg() != jwt.SigningMethodHS256.Alg() { return nil, errors.New("alg") }
+		return a.secret, nil
+	})
+	if err != nil || !t.Valid { return false }
+	claims, ok := t.Claims.(jwt.MapClaims)
+	wid, widOK := claims["wid"].(string)
+	purpose, purposeOK := claims["purpose"].(string)
+	return ok && widOK && purposeOK && purpose == "check-in" && wid == strconv.Itoa(int(weddingID))
 }
 func (a *App) auth(c *gin.Context) {
 	header := c.GetHeader("Authorization")
@@ -210,12 +238,12 @@ func main() {
 	r.Use(cors.New(cors.Config{AllowOrigins: strings.Split(getenv("FRONTEND_ORIGIN", "http://localhost:5173,http://127.0.0.1:5173"), ","), AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowHeaders: []string{"Origin", "Content-Type", "Authorization"}}))
 	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 	auth := r.Group("/auth")
-	auth.POST("/register", a.register)
-	auth.POST("/login", a.login)
+	auth.POST("/register", a.rateLimit(10), a.register)
+	auth.POST("/login", a.rateLimit(10), a.login)
 	r.GET("/w/:slug", a.publicWedding)
-	r.POST("/w/:slug/rsvp", a.rateLimit(), a.publicRSVP)
-	r.GET("/w/:slug/check-in/search", a.rateLimit(), a.checkInSearch)
-	r.POST("/w/:slug/check-in", a.rateLimit(), a.checkIn)
+	r.POST("/w/:slug/rsvp", a.rateLimit(5), a.publicRSVP)
+	r.GET("/w/:slug/check-in/search", a.rateLimit(60), a.checkInSearch)
+	r.POST("/w/:slug/check-in", a.rateLimit(60), a.checkIn)
 	r.Static("/uploads", getenv("UPLOAD_DIR", "./uploads"))
 	p := r.Group("/api")
 	p.Use(a.auth)
@@ -226,6 +254,7 @@ func main() {
 	p.POST("/weddings/:id/sessions", a.addSession)
 	p.DELETE("/weddings/:id/sessions/:sid", a.deleteSession)
 	p.GET("/weddings/:id/rsvps", a.listRSVPs)
+	p.GET("/weddings/:id/check-in-token", a.issueCheckInToken)
 	p.POST("/weddings/:id/rsvps/:rid/check-in", a.manualCheckIn)
 	p.DELETE("/weddings/:id/rsvps/:rid/check-in", a.undoCheckIn)
 	p.POST("/weddings/:id/images", a.uploadImage)
@@ -286,6 +315,18 @@ func (a *App) listWeddings(c *gin.Context) {
 	a.db.Preload("Sessions", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order") }).Preload("Images", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order") }).Where("organizer_id = ?", uid(c)).Find(&w)
 	c.JSON(200, w)
 }
+func (a *App) issueCheckInToken(c *gin.Context) {
+	w, ok := weddingFrom(a, c)
+	if !ok {
+		return
+	}
+	t, e := a.checkInToken(w.ID)
+	if e != nil {
+		fail(c, 500, "Token check-in gagal dibuat")
+		return
+	}
+	c.JSON(200, gin.H{"token": t, "path": "/w/" + w.Slug + "/check-in?t=" + t})
+}
 func (a *App) createWedding(c *gin.Context) {
 	var in weddingInput
 	if c.ShouldBindJSON(&in) != nil {
@@ -299,13 +340,23 @@ func (a *App) createWedding(c *gin.Context) {
 	}
 	w := Wedding{OrganizerID: uid(c), Slug: in.Slug, Bride: in.Bride, Groom: in.Groom, EventDate: date, Location: in.Location, Story: in.Story, CoverURL: in.CoverURL}
 	if in.Deadline != "" {
-		t, _ := parseTime(in.Deadline)
+		t, err := parseTime(in.Deadline)
+		if err != nil {
+			fail(c, 400, "Batas RSVP tidak valid")
+			return
+		}
 		w.Deadline = &t
 	}
 	if a.db.Create(&w).Error != nil {
 		fail(c, 409, "Slug sudah digunakan")
 		return
 	}
+	// Sesi default: RSVP "hadir" butuh sesi, jadi undangan baru jangan pernah lahir tanpa sesi.
+	if e = a.db.Create(&WeddingSession{WeddingID: w.ID, Label: "Resepsi Pernikahan", StartTime: w.EventDate, EndTime: w.EventDate.Add(4 * time.Hour)}).Error; e != nil {
+		fail(c, 500, "Sesi default gagal dibuat")
+		return
+	}
+	_ = a.db.Preload("Sessions", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order") }).First(&w, w.ID).Error
 	c.JSON(201, w)
 }
 func (a *App) updateWedding(c *gin.Context) {
@@ -370,8 +421,15 @@ func (a *App) addSession(c *gin.Context) {
 		fail(c, 400, "Waktu tidak valid")
 		return
 	}
+	if e := validSessionWindow(st, et, w.Sessions); e != nil {
+		fail(c, 400, e.Error())
+		return
+	}
 	s := WeddingSession{WeddingID: w.ID, Label: in.Label, StartTime: st, EndTime: et, SortOrder: len(w.Sessions)}
-	a.db.Create(&s)
+	if e := a.db.Create(&s).Error; e != nil {
+		fail(c, 500, "Sesi gagal disimpan")
+		return
+	}
 	c.JSON(201, s)
 }
 func (a *App) deleteSession(c *gin.Context) {
@@ -379,7 +437,19 @@ func (a *App) deleteSession(c *gin.Context) {
 	if !ok {
 		return
 	}
-	a.db.Where("id = ? AND wedding_id = ?", c.Param("sid"), w.ID).Delete(&WeddingSession{})
+	var linked int64
+	if e := a.db.Model(&RSVP{}).Where("session_id = ?", c.Param("sid")).Count(&linked).Error; e != nil {
+		fail(c, 500, "Gagal memeriksa tamu sesi ini")
+		return
+	}
+	if linked > 0 {
+		fail(c, 409, fmt.Sprintf("Sesi ini masih dipakai %d RSVP. Pindahkan tamu terlebih dahulu.", linked))
+		return
+	}
+	if e := a.db.Where("id = ? AND wedding_id = ?", c.Param("sid"), w.ID).Delete(&WeddingSession{}).Error; e != nil {
+		fail(c, 500, "Sesi gagal dihapus")
+		return
+	}
 	c.Status(204)
 }
 func (a *App) publicWedding(c *gin.Context) {
@@ -405,12 +475,38 @@ func (a *App) publicRSVP(c *gin.Context) {
 		in.SessionID = nil
 		in.GuestsCount = 0
 	}
-	if in.Attendance == "yes" && (in.SessionID == nil || a.db.Where("id = ? AND wedding_id = ?", *in.SessionID, w.ID).First(&WeddingSession{}).Error != nil) {
-		fail(c, 400, "Sesi tidak valid")
+	if in.Attendance == "yes" {
+		if in.GuestsCount < 1 {
+			fail(c, 400, "Jumlah tamu minimal 1")
+			return
+		}
+		// Undangan lama mungkin belum punya sesi. Wajibkan sesi hanya bila sesi memang ada,
+		// supaya tamu hadir tidak buntu di undangan yang belum diatur penuh.
+		var n int64
+		if e := a.db.Model(&WeddingSession{}).Where("wedding_id = ?", w.ID).Count(&n).Error; e != nil {
+			fail(c, 500, "Gagal memeriksa sesi acara")
+			return
+		}
+		if in.SessionID != nil {
+			if n == 0 || a.db.Where("id = ? AND wedding_id = ?", *in.SessionID, w.ID).First(&WeddingSession{}).Error != nil {
+				fail(c, 400, "Sesi tidak valid")
+				return
+			}
+		} else if n > 0 {
+			fail(c, 400, "Pilih sesi acara")
+			return
+		}
+	}
+	// Deadline dihormati di server, bukan hanya di tampilan.
+	if w.Deadline != nil && time.Now().After(*w.Deadline) {
+		fail(c, 409, "Batas konfirmasi sudah lewat")
 		return
 	}
 	r := RSVP{WeddingID: w.ID, SessionID: in.SessionID, Name: in.Name, Attendance: in.Attendance, GuestsCount: in.GuestsCount, Message: in.Message}
-	a.db.Create(&r)
+	if e := a.db.Create(&r).Error; e != nil {
+		fail(c, 500, "RSVP gagal disimpan")
+		return
+	}
 	c.JSON(201, gin.H{"message": "RSVP berhasil disimpan"})
 }
 func (a *App) listRSVPs(c *gin.Context) {
@@ -420,12 +516,29 @@ func (a *App) listRSVPs(c *gin.Context) {
 	}
 	var rows []RSVP
 	a.db.Preload("Session").Where("wedding_id = ?", w.ID).Order("created_at desc").Find(&rows)
-	var stats = gin.H{"total": len(rows), "yes": 0, "no": 0, "maybe": 0, "guests": 0}
+	var stats = gin.H{"total": len(rows), "yes": 0, "no": 0, "maybe": 0, "guests": 0, "checkin": 0}
+	var sessions []gin.H
+	for _, s := range w.Sessions {
+		entry := gin.H{"id": s.ID, "label": s.Label, "rsvps": 0, "guests": 0, "checkin": 0}
+		for _, r := range rows {
+			if r.SessionID != nil && *r.SessionID == s.ID {
+				entry["rsvps"] = entry["rsvps"].(int) + 1
+				entry["guests"] = entry["guests"].(int) + r.GuestsCount
+				if r.CheckedInAt != nil {
+					entry["checkin"] = entry["checkin"].(int) + 1
+				}
+			}
+		}
+		sessions = append(sessions, entry)
+	}
 	for _, r := range rows {
 		stats[r.Attendance] = stats[r.Attendance].(int) + 1
 		stats["guests"] = stats["guests"].(int) + r.GuestsCount
+		if r.CheckedInAt != nil {
+			stats["checkin"] = stats["checkin"].(int) + 1
+		}
 	}
-	c.JSON(200, gin.H{"rsvps": rows, "stats": stats})
+	c.JSON(200, gin.H{"rsvps": rows, "stats": stats, "sessions": sessions})
 }
 
 func (a *App) checkInSearch(c *gin.Context) {
@@ -439,6 +552,11 @@ func (a *App) checkInSearch(c *gin.Context) {
 		fail(c, 404, "Undangan tidak ditemukan")
 		return
 	}
+	// Token check-in dari QR: tanpa ini daftar tamu bisa dienumerasi siapa pun.
+	if !a.validateCheckInToken(c.Query("t"), w.ID) {
+		fail(c, 403, "Tautan check-in tidak valid atau kedaluwarsa")
+		return
+	}
 	var rows []RSVP
 	if e := a.db.Select("id", "name", "guests_count", "checked_in_at").Where("wedding_id = ? AND attendance = ? AND name ILIKE ?", w.ID, "yes", q+"%").Order("name").Limit(5).Find(&rows).Error; e != nil {
 		fail(c, 500, "Gagal mencari tamu")
@@ -448,7 +566,8 @@ func (a *App) checkInSearch(c *gin.Context) {
 }
 func (a *App) checkIn(c *gin.Context) {
 	var in struct {
-		RSVPID uint `json:"rsvp_id" binding:"required"`
+		RSVPID uint   `json:"rsvp_id" binding:"required"`
+		Token  string `json:"token"`
 	}
 	if c.ShouldBindJSON(&in) != nil {
 		fail(c, 400, "Pilih nama tamu")
@@ -457,6 +576,10 @@ func (a *App) checkIn(c *gin.Context) {
 	var w Wedding
 	if e := a.db.Where("slug = ?", c.Param("slug")).First(&w).Error; e != nil {
 		fail(c, 404, "Undangan tidak ditemukan")
+		return
+	}
+	if !a.validateCheckInToken(in.Token, w.ID) {
+		fail(c, 403, "Tautan check-in tidak valid atau kedaluwarsa")
 		return
 	}
 	now := time.Now()
@@ -528,17 +651,11 @@ func (a *App) uploadImage(c *gin.Context) {
 		fail(c, 400, e.Error())
 		return
 	}
+	// Cover lama dihapus setelah cover baru aman tersimpan, supaya upload gagal tidak menghapus cover yang masih dipakai.
+	var oldCovers []WeddingImage
 	if kind == "cover" {
-		var old []WeddingImage
-		if e = a.db.Where("wedding_id = ? AND kind = ?", w.ID, "cover").Find(&old).Error; e != nil {
+		if e = a.db.Where("wedding_id = ? AND kind = ?", w.ID, "cover").Find(&oldCovers).Error; e != nil {
 			fail(c, 500, "Gagal membaca cover lama")
-			return
-		}
-		for _, image := range old {
-			_ = os.Remove(filepath.Join(a.uploadRoot, filepath.FromSlash(strings.TrimPrefix(image.Path, "/uploads/"))))
-		}
-		if e = a.db.Where("wedding_id = ? AND kind = ?", w.ID, "cover").Delete(&WeddingImage{}).Error; e != nil {
-			fail(c, 500, "Gagal mengganti cover")
 			return
 		}
 	}
@@ -559,7 +676,14 @@ func (a *App) uploadImage(c *gin.Context) {
 		return
 	}
 	if kind == "cover" {
-		_ = a.db.Model(&w).Update("cover_url", image.Path).Error
+		if e = a.db.Model(&w).Update("cover_url", image.Path).Error; e != nil {
+			fail(c, 500, "Cover gagal diganti")
+			return
+		}
+		for _, old := range oldCovers {
+			_ = a.db.Delete(&old).Error
+			_ = os.Remove(filepath.Join(a.uploadRoot, filepath.FromSlash(strings.TrimPrefix(old.Path, "/uploads/"))))
+		}
 	}
 	c.JSON(201, image)
 }
@@ -589,7 +713,7 @@ type limiter struct {
 	hits map[string][]time.Time
 }
 
-func (a *App) rateLimit() gin.HandlerFunc {
+func (a *App) rateLimit(limit int) gin.HandlerFunc {
 	l := &limiter{hits: map[string][]time.Time{}}
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
@@ -605,9 +729,18 @@ func (a *App) rateLimit() gin.HandlerFunc {
 			}
 		}
 		xs = xs[:j]
-		if len(xs) >= 5 {
+		// Buang IP yang tidak aktif supaya map tidak tumbuh tanpa batas pada trafik nyata.
+		if len(l.hits) > 2048 {
+			for key, times := range l.hits {
+				if len(times) == 0 || times[len(times)-1].Before(cut) {
+					delete(l.hits, key)
+				}
+			}
+		}
+		if len(xs) >= limit {
 			l.hits[ip] = xs
 			l.Unlock()
+			c.Header("Retry-After", "60")
 			fail(c, 429, "Terlalu banyak permintaan")
 			c.Abort()
 			return

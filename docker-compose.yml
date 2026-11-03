@@ -10,10 +10,12 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgres://rsvp:rsvp@db:5432/rsvp?sslmode=disable
-      JWT_SECRET: change-me-in-production
+      # JWT_SECRET wajib diisi dari environment (minimal 32 karakter). Nilai contoh di file
+      # ini membuat backend panic saat start, jadi sengaja tidak diberi default.
+      DATABASE_URL: postgres://rsvp:${POSTGRES_PASSWORD:-rsvp}@db:5432/rsvp?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET to at least 32 characters}
       PORT: 8080
-      FRONTEND_ORIGIN: http://localhost:5173
+      FRONTEND_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
     ports: ["8080:8080"]
     depends_on: [db]
   frontend:

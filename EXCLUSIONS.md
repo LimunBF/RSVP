@@ -11,12 +11,13 @@ Fitur-fitur berikut secara eksplisit dikeluarkan dari cakupan pengerjaan hari pe
 * **Notifikasi Otomatis (Email / WhatsApp):** Tidak ada pengiriman tiket, pengingat, atau konfirmasi otomatis via WhatsApp API (seperti Fonnte/Watzap) maupun SMTP Email (SendGrid/Mailgun).
 * **Edit RSVP oleh Tamu:** Setelah tamu menekan tombol *submit*, data bersifat final. Tamu tidak disediakan tautan unik atau mekanisme untuk mengubah status kehadiran mereka di kemudian hari.
 * **Manajemen Kapasitas Sesi (*Quota*):** Tidak ada pembatasan jumlah kursi per sesi (misalnya, sesi Akad maksimal 50 orang). Sistem hanya mencatat dan menjumlahkan, tanpa mencegah tamu mendaftar jika jumlah sudah banyak.
-* **Upload File Media:** Sistem tidak menangani *upload* gambar/foto ke *server* lokal atau S3 (AWS/Cloudinary). Gambar profil acara atau *cover* undangan hanya menggunakan *input link URL* publik.
-* **Tema Kustom Dinamis:** *Organizer* tidak bisa memilih warna atau tata letak. Semua undangan publik akan menggunakan pakem tema tunggal **Modern Heritage (Batik Truntum)**.
+* **Upload File Media:** ~~Sistem tidak menangani *upload* gambar/foto~~ **Diimplementasikan.** Organizer dapat mengunggah cover dan foto galeri (JPG/PNG/WebP, maks 8 MB). Metadata disimpan di PostgreSQL, file di filesystem per wedding (`/uploads/weddings/<id>/<kind>/`). `cover_url` masih tersedia sebagai cadangan, dan CDN/S3 tetap out-of-scope.
+* **Tema Kustom Dinamis:** *Organizer* tidak bisa memilih warna atau tata letak. Semua undangan publik memakai pakem tema tunggal **Wayang Theatre**.
 
 ## 2. Infrastruktur Out-of-Scope
 
-* **Server-Side Rendering (SSR) / SEO Optimization:** Tidak menggunakan Next.js atau Nuxt. Aplikasi publik murni merender di sisi klien (Client-Side Rendering) menggunakan React + Vite. SEO dan *metadata crawler* (OpenGraph) diabaikan pada fase MVP.
+* **Server-Side Rendering (SSR) / SEO Optimization:** Tidak menggunakan Next.js atau Nuxt. Aplikasi publik murni merender di sisi klien (Client-Side Rendering) menggunakan React + Vite.
+* **Catatan revisi:** shell HTML dasar **tetap wajib** — `doctype`, `<html lang>`, `<title>`, `description`, dan `<meta name="viewport">`. Tanpa viewport meta, klaim *mobile-first* gagal di browser ponsel. OpenGraph dinamis per wedding tetap out-of-scope.
 * **Realtime Updates:** Dasbor *organizer* tidak menggunakan WebSocket atau *Server-Sent Events (SSE)* untuk pembaruan data RSVP otomatis. *Organizer* harus memuat ulang (*refresh*) halaman untuk melihat data terbaru.
 * **External Caching / In-Memory Store:** Tidak menggunakan Redis atau Memcached untuk *rate limiting* maupun *caching query* database. Semua di-handel secara *in-memory* di dalam aplikasi Go.
 

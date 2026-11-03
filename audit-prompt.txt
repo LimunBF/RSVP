@@ -1,0 +1,913 @@
+Perform a comprehensive audit of the existing **Sowan / Wedding RSVP** application in this repository.
+
+This is an EXISTING product.
+
+Do NOT immediately redesign or rewrite the application.
+
+Your first task is to understand what already exists, run it, inspect it visually, compare implementation against its product/design documentation, and produce a rigorous prioritized audit.
+
+## PROJECT CONTEXT
+
+Repository:
+
+https://github.com/LimunBF/RSVP
+
+Current technical stack:
+
+- React 19
+- Vite
+- Tailwind CSS v4
+- React Router
+- React Hook Form
+- Framer Motion
+- Go / Gin / GORM
+- PostgreSQL
+
+The product has two distinct experiences:
+
+1. Public wedding invitation / RSVP experience
+2. Organizer dashboard / management application
+
+The visual concept is **Modern Javanese Heritage**.
+
+Before auditing, read at minimum:
+
+- `README.md`
+- `AGENTS.md`
+- `DECISIONS.md`
+- `EXCLUSIONS.md`
+- `docs/PRD.md`
+- `docs/TRD.md`
+- `docs/QUALITY_GUIDELINES.md`
+- `frontend/src/main.tsx`
+- `frontend/src/styles.css`
+- `frontend/src/api.ts`
+
+Also inspect relevant backend behavior where it affects frontend UX.
+
+---
+
+# SKILLS TO USE
+
+Use these installed skills deliberately.
+
+Do not blindly combine their recommendations.
+
+### Product / UX audit
+
+Use:
+
+- `ui-ux-pro-max`
+
+Evaluate:
+
+- information architecture
+- task clarity
+- user flows
+- interaction patterns
+- form usability
+- navigation
+- feedback states
+- mobile UX
+- cognitive load
+
+---
+
+### Visual taste and art direction
+
+Use:
+
+- `design-taste-frontend`
+- `antislop`
+- `popular-web-designs`
+
+Evaluate whether the visual design feels:
+
+- distinctive
+- intentional
+- culturally coherent
+- premium
+- contemporary
+- readable
+
+and whether it avoids generic AI-generated design patterns.
+
+Do NOT recommend replacing the existing Javanese identity with a generic SaaS aesthetic.
+
+---
+
+### Design-system consistency
+
+Use:
+
+- `design-md`
+
+Audit:
+
+- colors
+- typography
+- spacing
+- borders
+- radii
+- shadows
+- interaction states
+- icon treatment
+- layout rhythm
+- reusable visual tokens
+
+Compare actual implementation with the documented design system.
+
+Pay particular attention to divergence between documentation and implementation.
+
+---
+
+### Cultural / visual direction
+
+Use:
+
+- `auteur`
+
+ONLY as an art-direction critic.
+
+Do not automatically turn the website into a cinematic landing page.
+
+Evaluate whether the existing theatrical ideas such as:
+
+- wayang
+- kelir
+- gunungan
+- Sidomukti ornament
+- heritage colors
+- scene transitions
+
+support the wedding experience or compete with it.
+
+The wedding invitation must remain emotionally warm and usable.
+
+---
+
+### Motion
+
+Use:
+
+- `web-motion`
+
+Audit every major motion pattern.
+
+Classify animation as:
+
+- useful
+- decorative but acceptable
+- unnecessary
+- distracting
+- harmful to usability
+
+Check:
+
+- scroll motion
+- reveals
+- image motion
+- parallax
+- opening animation
+- hover motion
+- section transitions
+- lightbox
+- reduced-motion behavior
+
+Motion must never compensate for weak typography or layout.
+
+---
+
+### Component quality
+
+Use:
+
+- `shadcn`
+- `shadcnspace`
+
+ONLY as references when evaluating interaction/component quality.
+
+Do NOT convert the existing interface into default shadcn components.
+
+The existing visual identity should remain custom.
+
+---
+
+### Actual browser review
+
+Use:
+
+- `computer-use`
+- `live-site-ui-review`
+
+This step is REQUIRED.
+
+Run the application and inspect the actual rendered interface.
+
+Do not judge visual quality only from source code.
+
+Inspect at minimum:
+
+- 375px mobile
+- 768px tablet
+- 1024px laptop
+- 1440px desktop
+
+If practical, also check 320px because the project claims support for that width.
+
+Inspect both:
+
+### Public invitation
+
+Use the provided demo route if available:
+
+`/w/anisa-bima`
+
+### Organizer experience
+
+Inspect:
+
+- Login
+- Register
+- Dashboard
+- Wedding editor
+- Session management
+- RSVP management
+- Gallery/media management
+- QR/link features
+
+---
+
+# IMPORTANT: AUDIT THE CURRENT DESIGN INTENT
+
+The project documentation originally defines a **Modern Heritage / Batik Truntum** direction.
+
+The implementation appears to have evolved toward a broader theatrical Javanese visual language involving:
+
+- Sidomukti-inspired ornament
+- Gunungan
+- Wayang figures
+- Kelir / stage imagery
+- theatrical scene transitions
+
+Determine whether this evolution is:
+
+A. a coherent improvement,
+
+B. partially successful but inconsistent,
+
+or
+
+C. visual scope creep.
+
+Do not assume the documentation is automatically correct.
+
+Do not assume the current implementation is automatically correct either.
+
+Judge which direction produces the strongest product.
+
+If documentation should be updated instead of the UI being reverted, explicitly say so.
+
+---
+
+# AUDIT 1 — FIRST IMPRESSION
+
+Evaluate the first 5–10 seconds of the invitation.
+
+Ask:
+
+- Does it immediately feel like a wedding invitation?
+- Is the couple the emotional focus?
+- Is the visual identity memorable?
+- Is the opening screen elegant or overly theatrical?
+- Is the primary action obvious?
+- Does cultural ornament support or dominate the content?
+- Does it feel premium or decorative?
+- Does it feel authentically intentional rather than "traditional elements pasted onto a modern website"?
+
+Give a score from 1–10.
+
+---
+
+# AUDIT 2 — VISUAL HIERARCHY
+
+Evaluate:
+
+- hero hierarchy
+- couple names
+- date
+- event details
+- story
+- gallery
+- RSVP CTA
+- section transitions
+- footer
+
+Check whether the eye naturally moves through the content.
+
+Identify any section where ornament, animation, imagery, or typography competes with the actual information.
+
+---
+
+# AUDIT 3 — TYPOGRAPHY
+
+Audit:
+
+- serif/sans pairing
+- heading scale
+- readability
+- line length
+- letter spacing
+- uppercase labels
+- metadata
+- button typography
+- mobile typography
+- contrast
+
+Determine whether system fonts such as Georgia / Segoe UI are helping or limiting the intended premium heritage character.
+
+Do not recommend custom fonts merely for novelty.
+
+---
+
+# AUDIT 4 — COLOR & CONTRAST
+
+Review the current palette including:
+
+- Sogan
+- Cream
+- Gold
+- Indigo
+- deep brown surfaces
+
+Check:
+
+- semantic consistency
+- contrast
+- CTA hierarchy
+- functional colors
+- dark sections
+- focus states
+- status colors
+
+Identify colors that are being used decoratively when they should have semantic purpose.
+
+---
+
+# AUDIT 5 — HERITAGE VISUAL LANGUAGE
+
+This is especially important.
+
+Evaluate each heritage element individually:
+
+- Sidomukti ornament
+- Gunungan
+- Wayang figures
+- Kelir
+- theatrical lighting
+- heritage borders/dividers
+- ceremonial colors
+
+For each element determine:
+
+1. What purpose does it serve?
+2. Does it strengthen identity?
+3. Is it overused?
+4. Is it visually competing with content?
+5. Should it remain, be reduced, or be removed?
+
+Avoid superficial "cultural aesthetic" reasoning.
+
+The goal is respectful visual coherence.
+
+---
+
+# AUDIT 6 — RSVP USER FLOW
+
+Treat RSVP as the most important conversion flow.
+
+Evaluate the complete flow:
+
+Opening invitation
+→ event information
+→ RSVP section
+→ attendance choice
+→ session selection
+→ guest count
+→ message
+→ submit
+→ confirmation
+
+Check:
+
+- clarity
+- unnecessary steps
+- validation
+- error states
+- success feedback
+- attendance options
+- conditional session field
+- guest count behavior
+- deadline visibility
+- mobile keyboard usability
+- input sizing
+- tap targets
+
+Compare implementation with documentation.
+
+Note any inconsistency such as documented attendance states versus implemented states.
+
+---
+
+# AUDIT 7 — LANGUAGE TOGGLE
+
+Audit Indonesia / Jawa behavior.
+
+Determine:
+
+- what content actually changes language
+- what remains untranslated
+- whether mixed-language UI feels intentional
+- whether the toggle communicates its state clearly
+
+If localization is incomplete, classify whether it should be:
+
+- completed properly
+- reduced in scope
+- or removed until complete
+
+---
+
+# AUDIT 8 — EVENT INFORMATION
+
+Check how easily a guest can find:
+
+- wedding date
+- time
+- location
+- individual sessions
+- Google Maps
+- calendar action
+- RSVP deadline
+
+Users should not have to search for essential logistics.
+
+---
+
+# AUDIT 9 — GALLERY
+
+Evaluate:
+
+- layout
+- aspect ratios
+- cropping
+- image hierarchy
+- lightbox interaction
+- keyboard accessibility
+- loading behavior
+- mobile behavior
+
+Also review fallback image strategy.
+
+Identify risks associated with external fallback assets.
+
+---
+
+# AUDIT 10 — MOTION
+
+Inventory the major animations.
+
+For each animation answer:
+
+- What does this communicate?
+- Would the interface lose meaning without it?
+- Is the duration appropriate?
+- Does it introduce latency?
+- Does it cause visual fatigue?
+- Is reduced motion respected?
+
+Pay special attention to:
+
+- opening transition
+- hero parallax
+- scroll reveals
+- SceneDivider
+- gallery motion
+- hover movement
+
+The site should still look excellent with motion disabled.
+
+---
+
+# AUDIT 11 — MOBILE EXPERIENCE
+
+Treat mobile as primary because wedding invitations are commonly opened from messaging apps.
+
+Review at 375px and 320px.
+
+Check:
+
+- opening view
+- navigation
+- hero height
+- typography
+- countdown
+- event cards
+- gallery
+- form
+- buttons
+- spacing
+- horizontal overflow
+- sticky/fixed UI
+- scroll length
+
+The mobile version must feel designed specifically for mobile rather than compressed desktop.
+
+---
+
+# AUDIT 12 — ORGANIZER DASHBOARD
+
+The dashboard should NOT have the same emotional design intensity as the wedding invitation.
+
+Evaluate it as an operational product.
+
+Prioritize:
+
+- speed
+- clarity
+- scanning
+- hierarchy
+- density
+- table usability
+- navigation
+- error prevention
+- editing workflows
+
+Check:
+
+- statistics
+- wedding editor
+- sessions
+- RSVPs
+- media
+- QR codes
+- links
+- destructive actions
+- confirmations
+- empty states
+- loading states
+- success/error feedback
+
+Determine whether heritage styling enhances the dashboard or unnecessarily decorates it.
+
+---
+
+# AUDIT 13 — ACCESSIBILITY
+
+Audit:
+
+- semantic HTML
+- heading hierarchy
+- labels
+- alt text
+- focus states
+- keyboard navigation
+- form errors
+- color contrast
+- radio controls
+- dialog/lightbox behavior
+- reduced motion
+- target size
+
+Identify issues by severity.
+
+Use:
+
+- Critical
+- High
+- Medium
+- Low
+
+---
+
+# AUDIT 14 — PERFORMANCE
+
+Review frontend performance risks.
+
+Check:
+
+- external images
+- image sizes
+- gallery loading
+- motion cost
+- SVG complexity
+- unnecessary rerenders
+- dependency weight
+- network font strategy
+- layout shifts
+- responsive image handling
+
+Do not propose premature micro-optimizations.
+
+Focus on things users could actually notice.
+
+---
+
+# AUDIT 15 — FRONTEND ARCHITECTURE
+
+Audit maintainability.
+
+In particular inspect:
+
+`frontend/src/main.tsx`
+
+and
+
+`frontend/src/styles.css`
+
+Determine whether these files have grown beyond reasonable responsibility.
+
+Look for opportunities to separate:
+
+- routes
+- page components
+- shared UI
+- wedding components
+- dashboard components
+- forms
+- motion utilities
+- design tokens
+- API concerns
+
+Do NOT recommend fragmentation for its own sake.
+
+Only extract boundaries that improve readability, testing, or iteration speed.
+
+---
+
+# AUDIT 16 — CONTENT AND MICROCOPY
+
+Review all visible UI text.
+
+Look for:
+
+- robotic phrasing
+- inconsistent tone
+- unclear labels
+- unnecessarily formal language
+- inconsistent Indonesian
+- mixed terminology
+
+The invitation voice should feel warm and ceremonial.
+
+The organizer dashboard should feel concise and operational.
+
+---
+
+# AUDIT 17 — ANTI-SLOP REVIEW
+
+Use `antislop` and `design-taste-frontend`.
+
+Look specifically for:
+
+- decorative effects with no purpose
+- repeated card patterns
+- excessive pills
+- overdone gradients
+- arbitrary shadows
+- excessive rounded corners
+- meaningless visual flourishes
+- trendy layout patterns applied without reason
+- unnecessary animation
+- excessive section labels
+- visual complexity pretending to be sophistication
+
+Be critical.
+
+Do not praise elements merely because they are visually complex.
+
+---
+
+# FINAL PASS — IMPECCABLE
+
+After all other analysis, use:
+
+`impeccable`
+
+as the final design critic.
+
+Ask:
+
+"What are the 10 changes that would produce the largest improvement in perceived quality?"
+
+Do not give generic suggestions.
+
+Tie every recommendation to something that actually exists in this repository.
+
+---
+
+# REQUIRED OUTPUT
+
+Produce the audit in this exact structure.
+
+## 1. Executive verdict
+
+Maximum 10 paragraphs.
+
+Explain:
+
+- overall quality
+- strongest aspect
+- weakest aspect
+- whether the design direction works
+- whether the product feels portfolio-worthy
+
+Give separate scores:
+
+Public Invitation:
+- Visual Design /10
+- UX /10
+- Mobile /10
+- Accessibility /10
+- Performance /10
+
+Organizer Dashboard:
+- Visual Design /10
+- UX /10
+- Information Architecture /10
+- Accessibility /10
+
+Engineering:
+- Frontend Architecture /10
+- Maintainability /10
+
+---
+
+## 2. What already works
+
+Only meaningful strengths.
+
+Explain WHY each works.
+
+---
+
+## 3. Critical problems
+
+Issues that strongly affect:
+
+- usability
+- accessibility
+- conversion
+- correctness
+- mobile experience
+
+For each include:
+
+**Problem**
+**Why it matters**
+**Where it occurs**
+**Recommended fix**
+
+---
+
+## 4. High-priority improvements
+
+Same format.
+
+---
+
+## 5. Medium-priority improvements
+
+Same format.
+
+---
+
+## 6. Small polish opportunities
+
+Only after major issues.
+
+---
+
+## 7. Public invitation audit
+
+Detailed section-by-section review.
+
+---
+
+## 8. Organizer dashboard audit
+
+Detailed product/UX review.
+
+---
+
+## 9. Motion audit
+
+List major motion patterns and classify each:
+
+KEEP
+TUNE
+REMOVE
+
+Explain why.
+
+---
+
+## 10. Design-system inconsistencies
+
+Compare:
+
+documentation
+vs
+actual implementation.
+
+If the implementation is better than the documentation, recommend updating documentation.
+
+Do not force implementation backwards unnecessarily.
+
+---
+
+## 11. Frontend architecture audit
+
+Explain concrete refactoring opportunities.
+
+Mention actual files/components.
+
+---
+
+## 12. Accessibility findings
+
+Group by:
+
+Critical
+High
+Medium
+Low
+
+---
+
+## 13. Performance findings
+
+Prioritized by expected user impact.
+
+---
+
+## 14. Top 10 changes
+
+Rank:
+
+#1 highest impact
+through
+#10 lowest of the top ten.
+
+Include estimated effort:
+
+XS
+S
+M
+L
+
+and category:
+
+UX
+Visual
+Accessibility
+Performance
+Architecture
+
+---
+
+## 15. Recommended design direction
+
+Answer:
+
+Should the project continue with:
+
+- Modern Heritage / Truntum
+- Sidomukti + Wayang Theatre
+- a hybrid
+- or a simplified direction?
+
+Explain the reasoning.
+
+Describe what should remain and what should be reduced.
+
+---
+
+# IMPORTANT EXECUTION RULE
+
+DO NOT modify code during this audit.
+
+DO NOT redesign yet.
+
+DO NOT create a PR yet.
+
+First produce evidence-based findings from:
+
+1. source inspection
+2. documentation comparison
+3. actual browser inspection
+4. responsive testing
+
+After the audit, stop.
+
+We will decide separately which recommendations should be implemented.

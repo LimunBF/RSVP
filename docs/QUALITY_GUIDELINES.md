@@ -2,7 +2,7 @@
 
 ## 1. Design Tokens & Theming (Tailwind CSS v4)
 
-Pendekatan desain bertransisi ke *Modern Heritage* yang memadukan estetika tradisional Jawa dengan fungsionalitas antarmuka modern yang bersih. Motif Batik Truntum (melambangkan cinta yang tumbuh bersemi) digunakan secara strategis tanpa mendominasi layar.
+Pendekatan desain adalah **Wayang Theatre**: memadukan panggung wayang kulit (kelir, blencong, gunungan) dan artefak asli museum dengan antarmuka modern yang bersih. Motif Batik Truntum (melambangkan cinta yang tumbuh bersemi) digunakan secara strategis tanpa mendominasi layar.
 
 **Palet Warna:**
 
@@ -19,28 +19,25 @@ Pendekatan desain bertransisi ke *Modern Heritage* yang memadukan estetika tradi
 
 ## 2. Component Inventory (React)
 
-### Layout & Motif Truntum
+### Layout & Motif
 
-* **`HeritageLayout`:** Latar belakang solid `--color-cream`. Motif Batik Truntum diimplementasikan maksimal 20–30% dari area layar sebagai elemen SVG.
-* **`BatikDivider`:** Garis pemisah horizontal yang menggunakan pola Truntum emas tipis untuk memisahkan bagian cerita, detail sesi, dan form RSVP.
-* **`TruntumCard`:** Kontainer form dengan latar belakang putih solid. Ornamen motif Truntum diletakkan eksklusif di sudut luar kartu (*corner stamps*) agar tidak mengganggu keterbacaan teks.
+* **`HeritageLayout`:** Latar belakang solid `--color-cream`. Motif Sidomukti diimplementasikan maksimal 20–30% dari area layar sebagai elemen SVG.
+* **`BatikDivider`:** Garis pemisah horizontal dengan ornamen Sidomukti emas tipis untuk memisahkan bagian cerita, detail sesi, dan form RSVP.
+* **`TruntumCard`:** Kontainer form dengan latar belakang putih solid. Ornamen motif Sidomukti diletakkan eksklusif di sudut luar kartu (*corner stamps*) agar tidak mengganggu keterbacaan teks.
 
 ### Form & Interaksi UI
 
 * **`TouchInput` & `TouchSelect`:** Field form didesain minimalis dengan *border* bawah (*underline*) atau kotak tipis `--color-sogan`, tinggi minimal 48px untuk *tap area* yang nyaman di perangkat seluler.
 * **`ActionBtn`:** Tombol utama berukuran besar (tinggi 56px) membentang penuh (*full-width*) di layar *mobile*. Menggunakan warna solid `--color-sogan` dengan teks Serif krem.
-* **`LanguageToggle`:** *Switch* kecil di sudut kanan atas layar publik untuk mengganti sapaan (ID / JV).
+* **Bahasa:** Undangan publik sepenuhnya berbahasa Indonesia. Tidak ada *toggle* bahasa sampai seluruh alur punya terjemahan Jawa yang lengkap.
 
 ## 3. Spesifikasi Form RSVP & Lokalisasi
 
-Pengalaman pengisian data mempertahankan struktur yang lugas dengan dukungan dwibahasa untuk menghormati tata krama tamu.
+Pengalaman pengisian data mempertahankan struktur yang lugas dan konsisten berbahasa Indonesia.
 
-* **Field Wajib Form:** Nama Lengkap, Status Kehadiran (Radio: Hadir / Tidak), Jumlah Tamu (Otomatis 0 jika tidak hadir), Pesan/Doa, dan tampilan *Deadline* Konfirmasi dengan teks tebal `--color-sogan`.
-* **Dukungan Krama Inggil (Jawa Halus):**
-* *Sapaan Pembuka:* "Katur dhumateng Bapak/Ibu/Sedherek..." (Kepada Yth.)
-* *Teks Undangan:* "Kanthi asor ing manah, kula ngaturaken pawartos duka ugi nyuwun donga pangestu..." (Dengan kerendahan hati...)
-* *Status Kehadiran:* "Badhe Rawuh" (Akan Hadir) / "Mboten Saged Rawuh" (Tidak Bisa Hadir).
-* *Catatan Aksesibilitas:* Label form teknis (seperti *placeholder* input nama dan jumlah tamu) tetap menggunakan bahasa yang jelas dan universal agar tidak terjadi kesalahan input.
+* **Field Wajib Form:** Nama Lengkap, Status Kehadiran (Radio: Hadir / Mungkin / Tidak Hadir), Sesi Acara (wajib bila hadir dan acara punya sesi), Jumlah Tamu (minimal 1 bila hadir, otomatis 0 bila tidak), Pesan/Doa (opsional).
+* **Deadline Konfirmasi:** Ditampilkan di atas form. Bila batas sudah lewat, form diganti status "Konfirmasi telah ditutup" dan backend menolak submission dengan 409.
+* **Catatan Aksesibilitas:** Label form memakai kalimat yang jelas dan universal agar tidak terjadi kesalahan input. Setiap *error* ditampilkan inline di bawah field, dan field yang gagal diberi `aria-invalid`.
 
 
 

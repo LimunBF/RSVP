@@ -36,11 +36,21 @@ Pasangan yang akan menikah atau *wedding organizer* membutuhkan sistem yang cepa
 
 * **User Story:** Sebagai Tamu, saya ingin melihat undangan dan mengisi kehadiran saya melalui *smartphone* dengan cepat.
 * **Acceptance Criteria:**
-* Halaman `/w/:slug` dirender sempurna di resolusi *mobile* (Mobile-first design).
+* Halaman `/w/:slug` dirender sempurna di resolusi *mobile* (Mobile-first design), termasuk `<meta name="viewport">` di `index.html`.
 * Form RSVP mewajibkan input: Nama, Status (Hadir/Tidak/Mungkin).
 * Jika status = "Hadir", opsi *radio button* untuk memilih Sesi dan input Jumlah Tamu otomatis muncul dan bersifat wajib.
 * Jika status = "Tidak" atau "Mungkin", *dropdown/radio* sesi tidak wajib atau disembunyikan, dan jumlah tamu diatur secara *default*.
 * Tidak ada opsi untuk mengedit RSVP yang sudah disubmit.
+* Bila organizer mengisi *Deadline* Konfirmasi, tanggal itu ditampilkan di atas form dan backend menolak submission setelahnya dengan status 409.
+
+### Absensi Tamu (Check-in)
+
+* **User Story:** Sebagai Organizer, saya ingin mencatat kehadiran tamu di pintu masuk lewat ponsel, tanpa membuka data tamu ke publik.
+* **Acceptance Criteria:**
+* QR absensi membawa URL `/w/:slug/check-in?t=<token>`; token ditandatangani per wedding dan kedaluwarsa dalam 14 hari.
+* Tanpa token, pencarian tamu dan check-in ditolak (403) sehingga daftar tamu tidak dapat dienumerasi dari *slug* saja.
+* Pencarian minimal 3 karakter, di-*debounce*, maksimal 5 hasil, hanya RSVP `yes`, dan tidak mengembalikan pesan maupun kontak.
+* Check-in bersifat idempoten dan menyimpan `checked_in_at`.
 
 
 
@@ -48,8 +58,8 @@ Pasangan yang akan menikah atau *wedding organizer* membutuhkan sistem yang cepa
 
 * **User Story:** Sebagai Organizer, saya ingin melihat ringkasan RSVP per sesi agar bisa mempersiapkan konsumsi dan tempat dengan tepat.
 * **Acceptance Criteria:**
-* Dashboard menampilkan statistik: Total Tamu Hadir, Tidak Hadir, Mungkin.
-* Menampilkan *breakdown* jumlah tamu berdasarkan sesi acara.
+* Dashboard menampilkan statistik: Total RSVP, tamu terkonfirmasi, sudah check-in, mungkin, dan tidak hadir.
+* Menampilkan *breakdown* jumlah tamu berdasarkan sesi acara (jumlah RSVP, jumlah orang, jumlah check-in).
 * Menyediakan tabel daftar tamu lengkap beserta ucapan yang diberikan.
 * QR Code otomatis digenerate di UI berdasarkan link publik undangan.
 

@@ -35,8 +35,11 @@ export type RSVP = {
   session?: Session;
   created_at: string;
 };
-export type Stats = { total: number; yes: number; no: number; maybe: number; guests: number };
+export type Stats = { total: number; yes: number; no: number; maybe: number; guests: number; checkin: number };
+export type SessionStats = { id: number; label: string; rsvps: number; guests: number; checkin: number };
+export type RSVPList = { rsvps: RSVP[]; stats: Stats; sessions: SessionStats[] };
 export type SearchResult = { id: number; name: string; guests_count: number; checked_in_at?: string | null };
+export type CheckInToken = { token: string; path: string };
 
 export class ApiError extends Error {}
 
