@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router';
 import { useForm } from 'react-hook-form';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
   CalendarDays, Check, ChevronDown, Clock3, Copy, ExternalLink, ImagePlus, LogOut,
   MapPin, Pencil, Plus, Search, Trash2, Upload, UserCheck, Users, X,
@@ -28,10 +28,39 @@ type Notice = { kind: 'error' | 'success'; text: string } | null;
 type RSVPForm = { name: string; attendance: 'yes' | 'no' | 'maybe'; session_id: string; guests_count: number; message: string };
 type WeddingValues = { bride: string; groom: string; slug: string; event_date: string; deadline: string; location: string; story: string; cover_url: string };
 
-// Batik Truntum derived mark: the star-flower repeated on traditional cloth, redrawn as line art.
+// Sidomukti-inspired floral diamond. It replaces Truntum with a calmer wedding symbol:
+// prosperity, dignity, and a good shared life.
 function Ornament() {
-  return <svg className="truntum-mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4c4 24 22 42 46 46-24 4-42 22-46 46-4-24-22-42-46-46C28 46 46 28 50 4Z"/><circle cx="50" cy="50" r="14"/><circle cx="50" cy="50" r="4"/></svg>;
+  return <svg className="truntum-mark sidomukti-mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 5 68 31 95 50 68 69 50 95 32 69 5 50 32 31Z"/><path d="M50 20c7 10 11 17 11 30S57 70 50 80c-7-10-11-17-11-30s4-20 11-30Z"/><path d="M20 50c10-7 17-11 30-11s20 4 30 11c-10 7-17 11-30 11s-20-4-30-11Z"/><circle cx="50" cy="50" r="7"/></svg>;
 }
+
+// Gunungan marks the beginning of a story in wayang. Used only as opening focal point.
+function Gunungan() {
+  return <svg className="gunungan-mark" viewBox="0 0 160 220" aria-hidden="true"><path className="gunungan-body" d="M80 8C64 43 24 86 18 146c-3 31 17 54 62 66 45-12 65-35 62-66C136 86 96 43 80 8Z"/><path d="M80 31v151M80 58C57 72 43 96 39 127M80 58c23 14 37 38 41 69M80 87c-17 5-28 16-34 32M80 87c17 5 28 16 34 32M80 116c-13 6-21 16-25 29M80 116c13 6 21 16 25 29"/><path d="M48 151c10-8 20-12 32-12s22 4 32 12M39 169h82M51 186h58"/><circle cx="80" cy="70" r="8"/></svg>;
+}
+
+function WayangFigure({ side }: { side: 'left' | 'right' }) {
+  const src = side === 'left' ? '/assets/wayang/arjuna-museum.jpg' : '/assets/wayang/bima-museum.jpg';
+  return <img className={`wayang-figure ${side}`} src={src} alt="" aria-hidden="true"/>;
+}
+
+function StageSet({ variant = 'light' }: { variant?: 'light' | 'dark' | 'photo' }) {
+  return <div className={`stage-set ${variant}`} aria-hidden="true">
+    <div className="historic-kelir"/><div className="blencong-light"/><div className="kelir-grain"/>
+    <WayangFigure side="left"/><WayangFigure side="right"/>
+    <div className="stage-base"/>
+  </div>;
+}
+
+function SceneDivider({ label }: { label: string }) {
+  const reduced = useReducedMotion();
+  return <motion.div className="scene-divider" aria-hidden="true"
+    initial={reduced ? false : { clipPath: 'inset(0 50% 0 50%)' }} whileInView={{ clipPath: 'inset(0 0% 0 0%)' }}
+    viewport={{ once: true, amount: .6 }} transition={{ duration: 1, ease: EASE }}>
+    <i/><span><Gunungan/></span><b>{label}</b><i/>
+  </motion.div>;
+}
+
 function Divider() { return <div className="heritage-divider" aria-hidden="true"><i/><Ornament/><i/></div>; }
 function Btn(props: React.ButtonHTMLAttributes<HTMLButtonElement>) { return <button {...props} className={`action-btn ${props.className || ''}`}>{props.children}</button>; }
 function Alert({ notice }: { notice: Notice }) { return notice ? <p role="alert" className={`notice ${notice.kind}`}>{notice.text}</p> : null; }
@@ -41,8 +70,17 @@ function Spinner({ label = 'Memuat...' }: { label?: string }) { return <div clas
 function Field({ label, hint, children, wide = false }: { label: string; hint?: string; children: React.ReactNode; wide?: boolean }) {
   return <label className={wide ? 'wide' : ''}><span>{label}</span>{hint && <small className="field-hint">{hint}</small>}{children}</label>;
 }
-function Reveal({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={className}>{children}</div>;
+const EASE = [.16, 1, .3, 1] as const;
+
+// Motion thesis: gunungan opens each act, then kelir scenes alternate with quiet paper chapters.
+// Transform-only reveals support the theatre rhythm; core content stays visible if motion never runs.
+function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const reduced = useReducedMotion();
+  return <motion.div className={className}
+    initial={reduced ? false : { opacity: 1, y: 54, rotateX: 5, scale: .985 }}
+    whileInView={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+    viewport={{ once: true, amount: .2 }}
+    transition={{ duration: .95, ease: EASE, delay }}>{children}</motion.div>;
 }
 
 // Countdown exists because the wedding date is far out and guests plan travel around it.
@@ -56,13 +94,15 @@ function Countdown({ target }: { target: string }) {
 
 function Opening({ wedding, onOpen }: { wedding: Wedding; onOpen: () => void }) {
   const reduced = useReducedMotion();
-  return <motion.div className="opening" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .6 }} style={{ backgroundImage: `linear-gradient(180deg, rgba(22,14,9,.35), rgba(22,14,9,.62) 45%, rgba(22,14,9,.88)), url(${coverOf(wedding) || FALLBACK_COVER})` }}>
-    <motion.div className="opening-frame" animate={reduced ? undefined : { rotate: [0, 5, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}><Ornament/></motion.div>
-    <motion.div className="opening-copy" initial={reduced ? false : { opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2, duration: .8 }}>
-      <p>The Wedding of</p>
+  return <motion.div className="opening wayang-opening" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={reduced ? { opacity: 0 } : { clipPath: 'inset(0 0 100% 0)' }} transition={{ duration: reduced ? .2 : 1.2, ease: EASE }}>
+    <div className="opening-photo" style={{ backgroundImage: `url(${coverOf(wedding) || FALLBACK_COVER})` }}/>
+    <StageSet variant="photo"/>
+    <motion.div className="opening-frame gunungan-frame" initial={reduced ? false : { y: -90, scale: .72 }} animate={{ y: 0, scale: 1 }} transition={{ delay: .15, duration: 1.25, ease: EASE }}><Gunungan/></motion.div>
+    <motion.div className="opening-copy" initial={reduced ? false : { y: 48, filter: 'blur(10px)' }} animate={{ y: 0, filter: 'blur(0px)' }} transition={{ delay: .3, duration: 1.05, ease: EASE }}>
+      <p>Pagelaran Pawiwahan</p>
       <h1>{couple(wedding)}</h1>
       <time dateTime={wedding.event_date}>{fullDate(wedding.event_date)}</time>
-      <Btn className="gold" onClick={onOpen}>Buka Undangan <ChevronDown size={18}/></Btn>
+      <Btn className="gold" onClick={onOpen}>Buka Kelir <ChevronDown size={18}/></Btn>
     </motion.div>
   </motion.div>;
 }
@@ -76,6 +116,11 @@ function Public() {
   const [done, setDone] = useState(false);
   const [lightbox, setLightbox] = useState<string>();
   const reduced = useReducedMotion();
+  const pageRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll();
+  const heroY = useTransform(scrollYProgress, [0, .25], ['0%', '18%']);
+  const heroImageY = useTransform(scrollYProgress, [0, .25], ['0%', '-12%']);
+  const heroFade = useTransform(scrollYProgress, [0, .2], [1, .35]);
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RSVPForm>({ defaultValues: { attendance: 'yes', guests_count: 1, session_id: '' } });
   const attending = watch('attendance') === 'yes';
 
@@ -106,25 +151,29 @@ function Public() {
     } catch (error) { setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Konfirmasi gagal dikirim' }); }
   };
 
-  return <motion.main className="wedding-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : .6 }}>
-    <nav className="floating-nav" aria-label="Navigasi undangan">
+  return <motion.main ref={pageRef} className="wedding-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : .55 }}>
+    <motion.nav className="floating-nav" aria-label="Navigasi undangan" initial={reduced ? false : { opacity: 0, y: -22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .65, duration: .6, ease: EASE }}>
       <a href="#acara">Acara</a><a href="#galeri">Galeri</a><a href="#rsvp">RSVP</a>
       <button onClick={() => setLang(lang === 'id' ? 'jv' : 'id')} aria-label="Ganti bahasa">{lang === 'id' ? 'JV' : 'ID'}</button>
-    </nav>
+    </motion.nav>
 
-    <section className="hero" style={{ backgroundImage: `linear-gradient(180deg, rgba(26,17,10,.55), rgba(26,17,10,.68) 40%, rgba(26,17,10,.9)), url(${coverOf(wedding) || FALLBACK_COVER})` }}>
-      <motion.div className="hero-copy" initial={reduced ? false : { opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9 }}>
+    <section className="hero theatre-scene">
+      <motion.div className="hero-media" style={{ y: reduced ? 0 : heroImageY, backgroundImage: `linear-gradient(180deg, rgba(20,12,7,.38), rgba(20,12,7,.67) 48%, rgba(20,12,7,.95)), url(${coverOf(wedding) || FALLBACK_COVER})` }}/>
+      <StageSet variant="photo"/>
+      <motion.div className="hero-copy" style={{ y: reduced ? 0 : heroY, opacity: reduced ? 1 : heroFade }}>
+        <motion.div className="hero-copy-inner" initial={reduced ? false : { opacity: 0, y: 44, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 1.1, ease: EASE }}>
         <div className="hero-ornament"><Ornament/></div>
         <p>{lang === 'id' ? 'Dengan hormat kami mengundang' : 'Katur dhumateng panjenengan'}</p>
         <h1>{couple(wedding)}</h1>
         <Divider/>
         <time dateTime={wedding.event_date}>{fullDate(wedding.event_date)}</time>
         <a className="text-action" href={calendarUrl} target="_blank" rel="noreferrer"><CalendarDays size={18}/> Simpan tanggal</a>
+        </motion.div>
       </motion.div>
       <a className="scroll-cue" href="#pembuka" aria-label="Lanjut ke isi undangan"><ChevronDown/></a>
     </section>
 
-    <section id="pembuka" className="verse section-pad">
+    <section id="pembuka" className="verse section-pad theatre-paper">
       <Reveal>
         <Ornament/>
         <blockquote>“Dan di antara tanda-tanda kebesaran-Nya ialah Dia menciptakan pasangan-pasangan untukmu agar kamu merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.”</blockquote>
@@ -132,7 +181,9 @@ function Public() {
       </Reveal>
     </section>
 
-    <section className="couple-section section-pad">
+    <SceneDivider label="Sowan"/>
+
+    <section className="couple-section section-pad theatre-paper">
       <Reveal className="section-heading"><span>Kedua mempelai</span><h2>Satu perjalanan,<br/>satu tujuan</h2></Reveal>
       <Reveal className="couple-portrait"><img src={coverOf(wedding) || FALLBACK_COVER} alt={`Potret ${couple(wedding)}`}/><span className="portrait-stamp"><Ornament/></span></Reveal>
       <Reveal className="couple-names">
@@ -143,19 +194,20 @@ function Public() {
       <Reveal className="story"><p>{wedding.story || 'Dengan penuh syukur, kami mengundang Anda untuk menjadi bagian dari hari bahagia kami.'}</p></Reveal>
     </section>
 
-    <section id="acara" className="event-section section-pad">
+    <section id="acara" className="event-section section-pad theatre-scene dark-stage">
+      <StageSet variant="dark"/>
       <Reveal className="event-intro"><p>Save the date</p><h2>{fullDate(wedding.event_date)}</h2><Countdown target={wedding.event_date}/></Reveal>
       <div className="event-list">
-        {sessions.map((session, index) => <Reveal key={session.id}>
-          <article>
+        {sessions.map((session, index) => <Reveal key={session.id} delay={index * .12}>
+          <motion.article whileHover={reduced ? undefined : { x: 10 }} transition={{ duration: .25, ease: EASE }}>
             <span className="event-number">0{index + 1}</span>
             <div><p className="event-label">Rangkaian acara</p><h3>{session.label}</h3></div>
             <dl>
               <div><dt><Clock3 size={18}/> Waktu</dt><dd>{clock(session.start_time)} WIB</dd></div>
               <div><dt><MapPin size={18}/> Lokasi</dt><dd>{wedding.location}</dd></div>
             </dl>
-          </article>
-        </Reveal>)}
+          </motion.article>
+        </Reveal>) }
       </div>
       <div className="event-actions">
         <a className="action-link gold" href={mapsUrl} target="_blank" rel="noreferrer"><MapPin size={18}/> Buka Google Maps</a>
@@ -163,16 +215,23 @@ function Public() {
       </div>
     </section>
 
-    <section id="galeri" className="gallery-section section-pad">
+    <SceneDivider label="Gebyog"/>
+
+    <section id="galeri" className="gallery-section section-pad theatre-scene dark-stage">
+      <StageSet variant="dark"/>
       <Reveal className="section-heading light"><span>Potongan cerita</span><h2>Dalam bingkai,<br/>selamanya</h2></Reveal>
       <div className="gallery-grid">
-        {gallery.map((image, index) => <motion.button key={image.url} whileHover={reduced ? undefined : { scale: 1.015 }} transition={{ duration: .25 }} onClick={() => setLightbox(image.url)} aria-label={`Perbesar foto galeri ${index + 1}`}>
+        {gallery.map((image, index) => <motion.button key={image.url}
+          initial={reduced ? false : { opacity: 1, scale: .94, rotate: index % 2 ? 1.5 : -1.5, y: index % 2 ? 46 : -46 }}
+          whileInView={{ opacity: 1, scale: 1, rotate: 0, y: 0 }} viewport={{ once: true, amount: .12 }}
+          whileHover={reduced ? undefined : { scale: 1.025, zIndex: 2 }} transition={{ duration: .9, delay: index * .07, ease: EASE }}
+          onClick={() => setLightbox(image.url)} aria-label={`Perbesar foto galeri ${index + 1}`}>
           <img src={image.url} alt={image.alt}/><span>0{index + 1}</span>
         </motion.button>)}
       </div>
     </section>
 
-    <section id="rsvp" className="rsvp-section section-pad">
+    <section id="rsvp" className="rsvp-section section-pad theatre-paper">
       <Reveal className="rsvp-intro">
         <span>Konfirmasi kehadiran</span>
         <h2>Hadirmu melengkapi cerita kami.</h2>
@@ -203,11 +262,13 @@ function Public() {
       </Reveal>
     </section>
 
-    <footer>
+    <footer className="theatre-scene dark-stage">
+      <StageSet variant="dark"/>
       <Ornament/>
       <p>Atas kehadiran dan doa restu Anda, kami mengucapkan terima kasih.</p>
       <h2>{couple(wedding)}</h2>
       <small>Sowan.</small>
+      <small className="asset-credit">Artefak wayang Arjuna & Bima: Collectie Wereldmuseum, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA</a>. Foto pagelaran: Kassian Cephas, public domain.</small>
     </footer>
 
     <AnimatePresence>
